@@ -1,0 +1,13 @@
+[Unit]
+Description=nginx - high performance web server
+Documentation=http://nginx.org/en/docs
+After=network.target remote-fs.target nss-lookup.target
+[Service]
+Type=forking
+PIDFile=/data/UnicomSMS/Nginx/logs/nginx.pid
+ExecStart=/data/UnicomSMS/Nginx/sbin/nginx -c /data/UnicomSMS/Nginx/conf/nginx.conf
+ExecReload=/data/UnicomSMS/Nginx/sbin/nginx -s reload
+ExecStop=/data/UnicomSMS/Nginx/sbin/nginx -s quit
+PrivateTmp=true
+[Install]
+WantedBy=multi-user.target
