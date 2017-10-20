@@ -1,0 +1,79 @@
+﻿1、基础软件包安装，采用yum安装
+#安装epel源
+# rpm -Uvh http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+#安装php5.6源
+# rpm -Uvh https://mirror.webtatic.com/yum/el6/latest.rpm
+#安装最新libcurl源(7.47)
+# rpm -ivh http://mirror.city-fan.org/ftp/contrib/yum-repo/city-fan.org-release-1-13.rhel6.noarch.rpm
+yum install -y libcurl libxml2 libxml2-devel
+
+#yum -y install gcc gcc-c++ httpd mysql-devel mysql mysql-server httpd-manual mod_ssl mod_perl mod_auth_mysql net-snmp net-snmp-devel curl-devel 
+
+#yum install php56w php56w-bcmath php56w-cli php56w-common php56w-fpm php56w-gd php56w-mbstring php56w-mcrypt php56w-mysql php56w-pdo php56w-pear php56w-soap php56w-xml php56w-xmlrpc
+
+#卸载之前安装的yum源
+yum remove webtatic-release-6-6.noarch
+yum remove city-fan.org-release-1-13.rhel6.noarch
+yum remove epel-release-6-8.noarch
+2、启动 httpd、mysql 并设置成开机自动启动
+# service httpd start
+# service mysqld start
+# chkconfig httpd on
+# chkconfig mysqld on
+
+3、在 iptables 中放行 80,10050,10051 端口
+# iptables -I INPUT -p tcp -m multiport --destination-port 80,10050:10051 -j ACCEPT
+
+4、配置PHP参数
+zabbix的运行需要特定的php参数支持，修改如下
+# sed -i "s@;date.timezone =@date.timezone = Asia/Shanghai@g" /etc/php.ini
+# sed -i "s@max_execution_time = 30@max_execution_time = 300@g" /etc/php.ini
+# sed -i "s@post_max_size = 8M@post_max_size = 32M@g" /etc/php.ini
+# sed -i "s@max_input_time = 60@max_input_time = 300@g" /etc/php.ini
+# sed -i "s@;mbstring.func_overload = 0@ambstring.func_overload = 2@g" /etc/php.ini
+
+5、添加 zabbix 用户和组
+# groupadd zabbix
+# useradd -g zabbix -s /sbin/nologin zabbix
+
+6、安装 zabbix-server 端
+# tar xf zabbix-3.0.1.tar.gz 
+# cd zabbix-3.0.1
+# ./configure --prefix=/usr/local/zabbix --enable-server --enable-proxy --enable-agent --with-libxml2 --with-mysql=/usr/bin/mysql_config --with-net-snmp --with-libcurl
+# make && make install
+
+7、创建 zabbix 数据库以及相关表
+# mysql -e "create database zabbix default charset utf8;"
+# mysql -e "grant all on zabbix.* to zabbix@localhost identified by 'zabbix';"
+# mysql -uzabbix -pzabbix zabbix<./database/mysql/schema.sql
+# mysql -uzabbix -pzabbix zabbix<./database/mysql/images.sql
+# mysql -uzabbix -pzabbix zabbix<./database/mysql/data.sql
+
+8、配置启动文件
+# mkdir /var/log/zabbix
+# chown zabbix:zabbix /var/log/zabbix
+# cp /usr/local/src/zabbix-3.0.1/misc/init.d/fedora/core/* /etc/init.d/
+
+9、修改启动文件zabbix_server zabbix_agentd
+# sed -i "s@BASEDIR=/usr/local@BASEDIR=/usr/local/zabbix@g" /etc/init.d/zabbix_server
+# sed -i "s@BASEDIR=/usr/local@BASEDIR=/usr/local/zabbix@g" /etc/init.d/zabbix_agentd
+
+10、修改配置文件
+# sed -i "s@# DBPassword=@DBPassword=zabbix@g" /usr/local/zabbix/etc/zabbix_server.conf
+# sed -i "s@tmp/zabbix_agentd.log@var/log/zabbix/zabbix_agentd.log@g" /usr/local/zabbix/etc/zabbix_agentd.conf
+# sed -i "s@tmp/zabbix_server.log@var/log/zabbix/zabbix_server.log@g" /usr/local/zabbix/etc/zabbix_server.conf
+
+11、复制站点文件
+# cp -r /usr/local/src/zabbix-3.0.1/frontends/php/ /var/www/html/zabbix/
+# chown -R apache:apache /var/www/html/zabbix/
+
+12、访问http://ip/zabbix 进行后续配置
+
+13、zabbix支持中文
+将微软雅黑字体msyh.ttf上传至/var/www/html/zabbix/fonts/
+#sed -i "s@DejaVuSans@msyh@g" /var/www/html/zabbix/include/defines.inc.php
+修改/var/www/html/zabbix/include/locales.inc.php第55行
+'zh_CN' =&gt; ['name' =&gt; _('Chinese (zh_CN)'), 'display' =&gt; true], #也就是把false改为true
+
+
+

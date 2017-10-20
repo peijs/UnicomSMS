@@ -1,0 +1,129 @@
+#环境（2017年7月28日）
+
+系统：CentOS Linux release 7.2.1511 (Core) Linux version 3.10.0-327.el7.x86_64（ cat /proc/version ）
+
+#工具
+
+LNMP 和 LAMP 环境
+
+bitnami-nginxstack-1.12.0-2-linux-x64-installer.run Nginx+Mysql+PHP集成包 (按照前需要先执行 yum -y install autoconf)
+
+
+#关闭系统SELINUX
+
+sed -i "s/SELINUX=enforcing/SELINUX=disabled/g" /etc/selinux/config  (临时关闭setenforce 0) 
+确认是否修改成功；命令如下：
+grep SELINUX /etc/selinux/config
+然后重启系统即可
+# reboot
+
+#配置变量
+
+PATH=$PATH:/UnicomSMS/Nginx/php/bin:/UnicomSMS/Nginx/mysql/bin
+export PATH
+
+#系统创建zabbix用户
+
+groupadd zabbix -g 501   #创建用户组，并且设置UID501  
+useradd -g zabbix -u 501 -m zabbix
+
+#建立zabbix所需的数据库
+
+CREATE DATABASE zabbix DEFAULT CHARACTER SET utf8 COLLATE utf8_bin;
+grant all privileges on zabbix.* to zabbix@localhost identified by 'zabbix'; 
+
+#依赖
+
+yum -y install gcc make  cmake curl curl-devel net-snmp net-snmp-devel perl-DBI
+
+#编译参数
+
+./configure --prefix=/UnicomSMS/Nginx/zabbix --enable-server --enable-proxy --enable-agent --with-mysql=/UnicomSMS/Nginx/mysql/bin/mysql_config --with-net-snmp  --with-libcurl
+make && make install
+
+进入zabbix源码安装包  cd  /root/zabbix-3.2.7/database/mysql 把zabbix sql文件导入到zabbix数据库
+
+use zabbix  #使用zabbix数据库
+#导入脚本文件到zabbix数据库
+source /soft/zabbix/zabbix-3.2.5/database/mysql/schema.sql 
+source /soft/zabbix/zabbix-3.2.5/database/mysql/images.sql 
+source /soft/zabbix/zabbix-3.2.5/database/mysql/data.sql
+
+#创建zabbix的的日志文件和连接
+
+mdkir /var/log/mysql
+ln -s /data/mysql/mysql.sock  /var/lib/mysql/mysql.sock
+mkdir /var/log/zabbix
+chown zabbix.zabbix /var/log/zabbix
+ln -s /usr/local/zabbix/etc /etc/zabbix
+ls -s /UnicomSMS/Nginx/zabbix/bin/* /usr/local/bin/
+ls -s /UnicomSMS/Nginx/zabbix/sbin/* /usr/local/sbin/
+
+#拷贝与配置zabbix启动文件
+
+cp  /root/zabbix-3.2.7/misc/init.d/fedora/core/zabbix_* /etc/init.d/
+
+chmod 755 /etc/init.d/zabbix_*  #添加脚本执行权限
+
+#修改启动文件zabbix_server zabbix_agentd
+
+sed -i "s@BASEDIR=/usr/local@BASEDIR=/UnicomSMS/Nginx/zabbix@g" /etc/init.d/zabbix_server
+sed -i "s@BASEDIR=/usr/local@BASEDIR=/UnicomSMS/Nginx/zabbix@g" /etc/init.d/zabbix_agentd
+
+#修改配置文件
+
+sed -i "s@# DBPassword=@DBPassword=zabbix@g" /UnicomSMS/Nginx/zabbix/etc/zabbix_server.conf
+sed -i "s@tmp/zabbix_agentd.log@var/log/zabbix/zabbix_agentd.log@g" /UnicomSMS/Nginx/zabbix/etc/zabbix_agentd.conf
+sed -i "s@tmp/zabbix_server.log@var/log/zabbix/zabbix_server.log@g" /UnicomSMS/Nginx/zabbix/etc/zabbix_server.conf
+
+
+#复制站点文件
+cp -r /usr/local/src/zabbix-3.0.1/frontends/php/ /var/www/html/zabbix/
+chown -R apache:apache /var/www/html/zabbix/
+
+
+
+
+
+
+
+#报错问题解答
+
+1、进入界面后，如果显示zabbix server is not running，那可能需要重启zabbix server服务，或者在查看 /var/log/zabbix/zabbix_server.log查看log，报错：
+
+1225:20170521:202555.906 database is down: reconnecting in 10 seconds
+1225:20170521:202605.908 [Z3001] connection to database 'zabbix' failed: [2002] Can't connect to local MySQL server through socket '/var/lib/mysql/mysql.sock' (2)
+
+解决方法：
+
+mkdir /var/lib/mysql
+ln -s /data/mysql/mysql.sock  /var/lib/mysql/mysql.sock
+
+
+2、启动zabbix时报“zabbix_server:/sbin/zabbix_server: error while loading shared libraries: libmysqlclient.so.”
+
+解决方法：
+
+解决方法
+[root@localhost ~]# locate libmysqlclient.so.18
+/usr/local/mysql/lib/libmysqlclient.so.18
+/usr/local/mysql/lib/libmysqlclient.so.18.0.0
+/usr/src/mysql-5.6.10/libmysql/libmysqlclient.so.18
+/usr/src/mysql-5.6.10/libmysql/libmysqlclient.so.18.0.0
+[root@localhost ~]# echo "/usr/local/mysql/lib" >> /etc/ld.so.conf
+[root@localhost ~]# ldconfig
+
+3、图形字体显示为乱码解决方法
+
+Win+R打开运行，输入fonts，回车进入Windows字体目录，找到微软雅黑-常规字体，复制出来将文件名修改为msyh.ttf，然后上传到/usr/share/zabbix/fonts
+
+上传成功后，编辑vim /usr/share/zabbix/include/defines.inc.php
+
+将以下两行中的graphfont 值替换为msyh.ttf，随后重启zabbix 即可。
+
+45:define('ZBX_GRAPH_FONT_NAME',        'graphfont'); // font file name
+93:define('ZBX_FONT_NAME', 'graphfont');
+
+
+
+参考地址：http://www.tuicool.com/articles/ZnaqaeA     http://www.cnblogs.com/mingerlcm/p/6809413.html
