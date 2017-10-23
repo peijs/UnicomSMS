@@ -2,7 +2,7 @@
 
 系统：CentOS Linux release 7.2.1511 (Core) Linux version 3.10.0-327.el7.x86_64（ cat /proc/version ）
 
-#工具。
+#工具
 
 LNMP 和 LAMP 环境
 
