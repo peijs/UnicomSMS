@@ -18,7 +18,7 @@ SOCKS5代理设置：
 设置https_proxy =
 Linux终端代理设置
 
-临时代理设置
+临时代理设置。
 
 Linux终端设置HTTP代理（只对当前终端有效）：
 
