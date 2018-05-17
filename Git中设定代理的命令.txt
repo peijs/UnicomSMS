@@ -2,7 +2,7 @@
 以本地HTTP / HTTPS代理127.0.0.1:8118和SOCKS5代理127.0.0.1:1080为例。
 
 Windows命令行代理设置
-HTTP代理设置：
+HTTP代理设置
 
 设置http_proxy = http：//127.0.0.1：8118
 设置https_proxy = http：//127.0.0.1：8118
