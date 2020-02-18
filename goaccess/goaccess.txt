@@ -1,0 +1,6 @@
+#÷’∂À
+goaccess /var/log/nginx/access.log -c
+
+
+#“≥√Ê
+goaccess varlognginxaccess.log -o varwwwhtmlreport.html --log-format=COMBINED --real-time-html &

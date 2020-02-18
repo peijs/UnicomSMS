@@ -1,0 +1,6 @@
+
+https://github.com/rabbitmq/rabbitmq-server/releases
+
+
+
+https://github.com/rabbitmq/erlang-rpm/releases
