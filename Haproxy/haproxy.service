@@ -1,12 +1,14 @@
 [Unit]
-Description=HAProxyLoad Balancer
-After=syslog.targetnetwork.target
+Description=HAProxy Load Balancer
+After=syslog.target network.target
 
 [Service]
-PIDFile=/var/run/haproxy.pid
-ExecStartPre=/data/UnicomSMS/Haproxy/sbin/haproxy -f /etc/haproxy/haproxy.cfg -c -q
-ExecStart=/data/UnicomSMS/Haproxy/sbin/haproxy -f /etc/haproxy/haproxy.cfg -p /var/run/haproxy.pid
-ExecReload=/bin/kill -s HUP $MAINPID
+PrivateTmp=false
+Restart=always
+Type=simple
+ExecStartPre=/data/QmhdsoftDeploy/Haproxy/sbin/haproxy -f /data/QmhdsoftDeploy/Haproxy/haproxy.cfg -c -q
+ExecStart=/data/QmhdsoftDeploy/Haproxy/sbin/haproxy -Ws -f /data/QmhdsoftDeploy/Haproxy/haproxy.cfg -p /data/QmhdsoftDeploy/Haproxy/haproxy.pid
+ExecReload=kill -USR2 $MAINPID
 
 [Install]
 WantedBy=multi-user.target
